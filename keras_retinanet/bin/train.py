@@ -41,6 +41,7 @@ from ..callbacks import RedirectModel
 from ..callbacks.eval import Evaluate
 from ..models.retinanet import retinanet_bbox
 from ..preprocessing.csv_generator import CSVGenerator
+from ..preprocessing.pyglengine_generator import GLEngineGenerator
 from ..preprocessing.kitti import KittiGenerator
 from ..preprocessing.open_images import OpenImagesGenerator
 from ..preprocessing.pascal_voc import PascalVocGenerator
@@ -237,6 +238,20 @@ def create_generators(args):
             )
         else:
             validation_generator = None
+    elif args.dataset_type == 'glengine':
+        train_generator = GLEngineGenerator(
+            model_dir=args.model_dir,
+            skybox_dir=args.skybox_dir,
+            transform_generator=transform_generator,
+            batch_size=args.batch_size,
+            image_min_side=args.image_min_side,
+            image_max_side=args.image_max_side,
+            number_of_images=args.nb_images,
+            img_width=200,
+            img_height=200
+        )
+
+        validation_generator = None
     elif args.dataset_type == 'oid':
         train_generator = OpenImagesGenerator(
             args.main_dir,
@@ -342,6 +357,13 @@ def parse_args(args):
     csv_parser.add_argument('annotations', help='Path to CSV file containing annotations for training.')
     csv_parser.add_argument('classes', help='Path to a CSV file containing class label mapping.')
     csv_parser.add_argument('--val-annotations', help='Path to CSV file containing annotations for validation (optional).')
+
+    glengine_parser = subparsers.add_parser('glengine')
+    glengine_parser.add_argument('--model_dir')
+    glengine_parser.add_argument('--skybox_dir', default="")
+    glengine_parser.add_argument('--nb_images', type=int)
+    glengine_parser.add_argument('--img_width', type=int, default=200)
+    glengine_parser.add_argument('--img_height', type=int, default=200)
 
     group = parser.add_mutually_exclusive_group()
     group.add_argument('--snapshot',          help='Resume training from a snapshot.')
