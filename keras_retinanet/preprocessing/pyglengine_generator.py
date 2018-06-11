@@ -1,6 +1,7 @@
 from .generator import Generator
 import glm
 import numpy as np
+import os
 from PyGLEngine.GLEngine import ImageRenderer
 
 
@@ -10,6 +11,7 @@ class GLEngineGenerator(Generator):
             number_of_images,
             model_dir,
             skybox_dir,
+            save_dir,
             img_width,
             img_height,
             **kwargs
@@ -34,8 +36,8 @@ class GLEngineGenerator(Generator):
         self.classes = {}
         for i, class_name in enumerate(self.labels):
             self.classes[class_name] = i
-
-        self.renderer.renderAllFrames()
+        with open(os.path.join(save_dir, "annotations.csv"), "w") as file:
+            self.renderer.writeAllFrames(file)
 
         super(GLEngineGenerator, self).__init__(**kwargs)
 

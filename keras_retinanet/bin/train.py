@@ -247,6 +247,7 @@ def create_generators(args):
             image_min_side=args.image_min_side,
             image_max_side=args.image_max_side,
             number_of_images=args.nb_images,
+            save_dir=args.save_dir,
             img_width=200,
             img_height=200
         )
@@ -361,6 +362,7 @@ def parse_args(args):
     glengine_parser = subparsers.add_parser('glengine')
     glengine_parser.add_argument('--model_dir')
     glengine_parser.add_argument('--skybox_dir', default="")
+    glengine_parser.add_argument('--save_dir', default="")
     glengine_parser.add_argument('--nb_images', type=int)
     glengine_parser.add_argument('--img_width', type=int, default=200)
     glengine_parser.add_argument('--img_height', type=int, default=200)
