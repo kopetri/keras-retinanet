@@ -22,6 +22,7 @@ class GLEngineGenerator(Generator):
         self.renderer = ImageRenderer(
             modelsDir=model_dir,
             skyboxDir=skybox_dir,
+            saveDir=save_dir,
             enable_skybox=not skybox_dir == "",
             random=True,
             calculate_bounding_box=True,
