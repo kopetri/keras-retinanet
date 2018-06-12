@@ -39,6 +39,11 @@ class GLEngineGenerator(Generator):
         with open(os.path.join(save_dir, "annotations.csv"), "w") as file:
             self.renderer.writeAllFrames(file)
 
+        if len(self.renderer.frames) < self.renderer.number_of_images:
+            print("len(self.renderer.frames) < self.renderer.number_of_images")
+            print(str(self.renderer.number_of_images))
+            print(str(len(self.renderer.frames)))
+
         super(GLEngineGenerator, self).__init__(**kwargs)
 
     def size(self):
