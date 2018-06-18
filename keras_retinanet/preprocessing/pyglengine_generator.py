@@ -27,7 +27,6 @@ class GLEngineGenerator(Generator):
             random=True,
             calculate_bounding_box=True,
             camera_distance=(1.5, 4.0),
-            model_rotation=glm.vec3(-90, 0, 0),
             width=img_width,
             height=img_height,
             number_of_images=number_of_images
