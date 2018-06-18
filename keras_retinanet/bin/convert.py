@@ -1,5 +1,5 @@
 if __name__ == '__main__':
-    annotation_file = "D:/Documents/dataset/villeroy-boch-shuffle_background-noreflection-random/annotations.csv"
+    annotation_file = "D:/Documents/dataset/villeroy-boch-black-noreflection/annotations.csv"
     content = []
     with open(annotation_file, "r") as file:
         for line in file:
