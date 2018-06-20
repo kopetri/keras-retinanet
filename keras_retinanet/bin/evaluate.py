@@ -75,6 +75,7 @@ def create_generator(args):
 
 
 def parse_args(args):
+    print(args)
     parser     = argparse.ArgumentParser(description='Evaluation script for a RetinaNet network.')
     subparsers = parser.add_subparsers(help='Arguments for specific dataset types.', dest='dataset_type')
     subparsers.required = True
@@ -86,10 +87,10 @@ def parse_args(args):
     pascal_parser.add_argument('pascal_path', help='Path to dataset directory (ie. /tmp/VOCdevkit).')
 
     csv_parser = subparsers.add_parser('csv')
-    csv_parser.add_argument('annotations', help='Path to CSV file containing annotations for evaluation.')
-    csv_parser.add_argument('classes', help='Path to a CSV file containing class label mapping.')
+    csv_parser.add_argument('--annotations', help='Path to CSV file containing annotations for evaluation.', type=str, default="D:/Documents/dataset/villeroy-boch-black-noreflection/annotations.csv")
+    csv_parser.add_argument('--classes', help='Path to a CSV file containing class label mapping.', type=str, default="D:/Documents/dataset/villeroy-boch-black-noreflection/classes.csv")
 
-    parser.add_argument('model',             help='Path to RetinaNet model.')
+    parser.add_argument('--model',             help='Path to RetinaNet model.')
     parser.add_argument('--convert-model',   help='Convert the model to an inference model (ie. the input is a training model).', action='store_true')
     parser.add_argument('--backbone',        help='The backbone of the model.', default='resnet50')
     parser.add_argument('--gpu',             help='Id of the GPU to use (as reported by nvidia-smi).')

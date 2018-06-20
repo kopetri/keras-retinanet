@@ -2,24 +2,61 @@ import cv2
 import os
 import numpy as np
 
-pixels = []
+
+def debug_annotations(annotations):
+    with open(annotations, "r") as file:
+        for line in file:
+            if line.strip() == "":
+                continue
+            line = line.strip().split(",")
+            path, x1, y1, x2, y2, label = line[:6]
+            if not x1.strip() == "":
+                x1, y1, x2, y2 = float(x1), float(y1), float(x2), float(y2)
+                print("(" + str(x1) + "," + str(y1) + ")-(" + str(x2) + "," + str(y2) + ")")
+            else:
+                x1, y1, x2, y2 = 0, 0, 0, 0
+            image = cv2.imread(path, cv2.IMREAD_COLOR)
+            print(image.shape)
+
+            width = 800
+            scale = float(width) / float(image.shape[1])
+            height = int(float(image.shape[0]) * scale)
+
+            x1, y1, x2, y2 = int(x1 * scale), int(y1 * scale), int(x2 * scale), int(y2 * scale)
+            x1 = min(width - 1, max(0, x1))
+            x2 = min(width - 1, max(0, x2))
+            y1 = min(height - 1, max(0, y1))
+            y2 = min(height - 1, max(0, y2))
+            image = cv2.resize(image, (width, height))
+            cv2.rectangle(image, (x1, y1), (x2, y2), (0, 255, 0), 1)
+            cv2.putText(image, label, (x1, y1 + 30), cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 255, 255), 1, cv2.LINE_AA)
+            cv2.imshow("annotation", image)
+            cv2.waitKey(1)
 
 
 def mark_pixel(event, x, y, flags, param):
     if event == cv2.EVENT_LBUTTONUP:
         if len(pixels) >= 4:
             return
+        if x < 7:
+            x = 0
+        elif x > original_dims[0] - 7:
+            x = original_dims[0]
+        if y < 7:
+            y = 0
+        elif y > original_dims[1] - 7:
+            y = original_dims[1]
         global marked_pixel
         marked_pixel = (x, y)
         pixels.append(marked_pixel)
 
 
-if __name__ == '__main__':
-    input_dir = "D:/Documents/Villeroy & Boch - Subway 2.0"
-    annotations = "D:/Documents/Villeroy & Boch - Subway 2.0/annotations.csv"
+def labeling(input_dir, annotations):
+    global pixels
+    pixels = []
     annotations_file_content = []
     images_to_ignore = []
-    with open(annotations) as annotations_file:
+    with open(annotations, "r") as annotations_file:
         for line in annotations_file:
             annotations_file_content.append(line)
             line_split = line.split(",")
@@ -27,7 +64,8 @@ if __name__ == '__main__':
     class_names = []
     bb_min = (-1, -1)
     bb_max = (-1, -1)
-    original_dims = (0,0)
+    global original_dims
+    original_dims = (0, 0)
     with open(annotations, "w") as annotations_file:
         for line in annotations_file_content:
             annotations_file.write(line)
@@ -56,10 +94,12 @@ if __name__ == '__main__':
                             if len(pixels) == 4:
                                 bb_min = (min(np.array(pixels)[:, :1])[0], min(np.array(pixels)[:, 1:])[0])
                                 bb_max = (max(np.array(pixels)[:, :1])[0], max(np.array(pixels)[:, 1:])[0])
-                                cv2.rectangle(image, bb_min, bb_max, (0,255,0))
+                                cv2.rectangle(image, bb_min, bb_max, (0, 255, 0))
+                                cv2.putText(image, class_name, (bb_min[0], bb_min[1] + 30), cv2.FONT_HERSHEY_SIMPLEX, 1,
+                                            (255, 255, 255), 1, cv2.LINE_AA)
                             else:
                                 cv2.circle(image, pixel, 3, (0, 255, 0), -1)
-                        cv2.imshow("image", image)
+                        cv2.imshow(class_name, image)
                         key = cv2.waitKey(1) & 0xFF
 
                         if key == 27 and len(pixels) > 0:
@@ -68,9 +108,18 @@ if __name__ == '__main__':
                         # if the 'c' key is pressed, break from the loop
                         elif key == ord("c"):
                             quit(0)
+                        elif key == ord("n"):
+                            annotations_file.write(img_path + ",")
+                            annotations_file.write(",")
+                            annotations_file.write(",")
+                            annotations_file.write(",")
+                            annotations_file.write(",")
+                            annotations_file.write("\n")
+                            print("saved annotations for image: " + img_path)
+                            pixels = []
+                            break
                         elif key == 13:
                             if len(pixels) == 4:
-                                restore_aspect = 1.0 - aspect
                                 bb = np.array([bb_min[0], bb_min[1], bb_max[0], bb_max[1]], np.float32)
                                 bb[0] = bb[0] / width * original_dims[0]
                                 bb[1] = bb[1] / height * original_dims[1]
@@ -85,6 +134,14 @@ if __name__ == '__main__':
                                     tmp = bb[1]
                                     bb[1] = bb[3]
                                     bb[3] = tmp
+                                if bb[0] > original_dims[0] - 12:
+                                    bb[0] = original_dims[0]
+                                if bb[2] > original_dims[0] - 12:
+                                    bb[2] = original_dims[0]
+                                if bb[1] > original_dims[1] - 12:
+                                    bb[1] = original_dims[1]
+                                if bb[3] > original_dims[1] - 12:
+                                    bb[3] = original_dims[1]
                                 annotations_file.write(img_path + ",")
                                 annotations_file.write(str(bb[0]) + ",")
                                 annotations_file.write(str(bb[1]) + ",")
@@ -96,3 +153,10 @@ if __name__ == '__main__':
                                 break
 
                         image = clone.copy()
+
+
+if __name__ == '__main__':
+    input_dir = "D:/Documents/Villeroy & Boch - Subway 2.0"
+    annotations = "D:/Documents/Villeroy & Boch - Subway 2.0/annotations.csv"
+    labeling(input_dir, annotations)
+    #debug_annotations(annotations)
