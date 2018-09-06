@@ -41,6 +41,7 @@ from ..callbacks import RedirectModel
 from ..callbacks.eval import Evaluate
 from ..models.retinanet import retinanet_bbox
 from ..preprocessing.csv_generator import CSVGenerator
+from ..preprocessing.h5py_generator import H5PyGenerator
 from ..preprocessing.kitti import KittiGenerator
 from ..preprocessing.open_images import OpenImagesGenerator
 from ..preprocessing.pascal_voc import PascalVocGenerator
@@ -237,6 +238,25 @@ def create_generators(args):
             )
         else:
             validation_generator = None
+    elif args.dataset_type == 'h5':
+        train_generator = H5PyGenerator(
+            hdf5_dataset_path=args.annotations,
+            csv_class_file=args.classes,
+            transform_generator=transform_generator,
+            batch_size=args.batch_size,
+            image_min_side=args.image_min_side,
+            image_max_side=args.image_max_side
+        )
+
+        if args.val_annotations:
+            validation_generator = H5PyGenerator(
+                hdf5_dataset_path=args.val_annotations,
+                batch_size=args.batch_size,
+                image_min_side=args.image_min_side,
+                image_max_side=args.image_max_side
+            )
+        else:
+            validation_generator = None
     elif args.dataset_type == 'oid':
         train_generator = OpenImagesGenerator(
             args.main_dir,
@@ -342,6 +362,12 @@ def parse_args(args):
     csv_parser.add_argument('annotations', help='Path to CSV file containing annotations for training.')
     csv_parser.add_argument('classes', help='Path to a CSV file containing class label mapping.')
     csv_parser.add_argument('--val-annotations', help='Path to CSV file containing annotations for validation (optional).')
+
+    h5_parser = subparsers.add_parser('h5')
+    h5_parser.add_argument('annotations', help='Path to h5 file containing annotations for training.')
+    h5_parser.add_argument('classes', help='Path to a h5 file containing class label mapping.')
+    h5_parser.add_argument('--val-annotations',
+                            help='Path to h5 file containing annotations for validation (optional).')
 
     glengine_parser = subparsers.add_parser('glengine')
     glengine_parser.add_argument('--model_dir')
