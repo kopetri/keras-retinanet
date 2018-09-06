@@ -4,7 +4,6 @@ from tqdm import tqdm, trange
 import numpy as np
 from six import raise_from
 import csv
-import cv2
 
 from .generator import Generator
 from .csv_generator import _read_classes, _open_for_csv
@@ -117,7 +116,4 @@ class H5PyGenerator(Generator):
                 tr = range(self.dataset_size)
             for i in tr:
                 self.eval_neutral.append(eval_neutral[i])
-
-        for key in list(self.hdf5_dataset.keys()):
-            print(self.hdf5_dataset[key])
         super(H5PyGenerator, self).__init__(**kwargs)

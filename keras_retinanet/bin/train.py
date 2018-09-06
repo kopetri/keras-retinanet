@@ -251,6 +251,7 @@ def create_generators(args):
         if args.val_annotations:
             validation_generator = H5PyGenerator(
                 hdf5_dataset_path=args.val_annotations,
+                csv_class_file=args.classes,
                 batch_size=args.batch_size,
                 image_min_side=args.image_min_side,
                 image_max_side=args.image_max_side
