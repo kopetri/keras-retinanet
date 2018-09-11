@@ -32,6 +32,7 @@ if __name__ == "__main__" and __package__ is None:
 # Change these to absolute imports if you copy this script outside the keras_retinanet package.
 from .. import models
 from ..preprocessing.csv_generator import CSVGenerator
+from ..preprocessing.h5py_generator import H5PyGenerator
 from ..preprocessing.pascal_voc import PascalVocGenerator
 from ..utils.eval import evaluate
 from ..utils.keras_version import check_keras_version
@@ -68,6 +69,13 @@ def create_generator(args):
             image_min_side=args.image_min_side,
             image_max_side=args.image_max_side
         )
+    elif args.dataset_type == 'hdf5':
+        validation_generator = H5PyGenerator(
+            hdf5_dataset_path=args.hdf5_file,
+            csv_class_file=args.classes,
+            image_min_side=args.image_min_side,
+            image_max_side=args.image_max_side
+        )
     else:
         raise ValueError('Invalid data type received: {}'.format(args.dataset_type))
 
@@ -89,6 +97,10 @@ def parse_args(args):
     csv_parser = subparsers.add_parser('csv')
     csv_parser.add_argument('--annotations', help='Path to CSV file containing annotations for evaluation.', type=str, default="D:/Documents/dataset/villeroy-boch-black-noreflection/annotations.csv")
     csv_parser.add_argument('--classes', help='Path to a CSV file containing class label mapping.', type=str, default="D:/Documents/dataset/villeroy-boch-black-noreflection/classes.csv")
+
+    hdf5_parser = subparsers.add_parser('hdf5')
+    hdf5_parser.add_argument('--hdf5_file', help='Path to CSV file containing annotations for evaluation.', type=str)
+    hdf5_parser.add_argument('--classes', help='Path to a CSV file containing class label mapping.', type=str,)
 
     parser.add_argument('--model',             help='Path to RetinaNet model.')
     parser.add_argument('--convert-model',   help='Convert the model to an inference model (ie. the input is a training model).', action='store_true')
