@@ -2,9 +2,11 @@ import cv2
 import os
 import numpy as np
 import time
+import csv
 
 
-def debug_annotations(annotations, dir=""):
+def debug_annotations(annotations, dir="", max_width=None):
+    image_data = {}
     with open(annotations, "r") as file:
         for line in file:
             if line.strip() == "":
@@ -13,24 +15,28 @@ def debug_annotations(annotations, dir=""):
             path, x1, y1, x2, y2, label = line[:6]
             if not x1.strip() == "":
                 x1, y1, x2, y2 = float(x1), float(y1), float(x2), float(y2)
-                print("(" + str(x1) + "," + str(y1) + ")-(" + str(x2) + "," + str(y2) + ")")
+                if path not in image_data:
+                    image_data[path] = [(x1, y1, x2, y2, label)]
+                else:
+                    image_data[path].append((x1, y1, x2, y2, label))
             else:
-                x1, y1, x2, y2 = 0, 0, 0, 0
-            image = cv2.imread(os.path.join(dir,path), cv2.IMREAD_COLOR)
-            print(image.shape)
-
-            width = image.shape[1]#800
-            scale = 1.0#float(width) / float(image.shape[1])
-            height = image.shape[0]#int(float(image.shape[0]) * scale)
-
-            x1, y1, x2, y2 = int(x1 * scale), int(y1 * scale), int(x2 * scale), int(y2 * scale)
-            x1 = min(width, max(0, x1))
-            x2 = min(width, max(0, x2))
-            y1 = min(height, max(0, y1))
-            y2 = min(height, max(0, y2))
+                image_data[path] = []
+        for i, key in enumerate(image_data):
+            image = cv2.imread(os.path.join(dir, key.replace("\"", "")), cv2.IMREAD_COLOR)
+            print(len(image_data[key]))
+            for box in image_data[key]:
+                x1, y1, x2, y2, label = box[0], box[1], box[2], box[3], box[4]
+                x1, y1, x2, y2 = int(x1), int(y1), int(x2), int(y2)
+                cv2.rectangle(image, (x1, y1), (x2, y2), (0, 255, 0), 5)
+                cv2.putText(image, label, (x1, y1 + 30), cv2.FONT_HERSHEY_SIMPLEX, 5, (255, 255, 255), 10, cv2.LINE_AA)
+            if max_width:
+                width = max_width
+                scale = float(width) / float(image.shape[1])
+                height = int(float(image.shape[0]) * scale)
+            else:
+                width = image.shape[1]
+                height = image.shape[0]
             image = cv2.resize(image, (width, height))
-            cv2.rectangle(image, (x1, y1), (x2, y2), (0, 255, 0), 1)
-            cv2.putText(image, label, (x1, y1 + 30), cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 255, 255), 1, cv2.LINE_AA)
             cv2.imshow("annotation", image)
             cv2.waitKey(0)
 
@@ -169,22 +175,23 @@ def labeling(input_dir, annotations):
                         image = clone.copy()
 
 
-def parse_annotations_from_alpha_mask(dir, separator, background_color1, background_color2, mode="retinanet", class_dictionary=None, debug=False):
+def parse_annotations_from_alpha_mask(dir, separator, background_color1, background_color2, mode="retinanet",
+                                      class_dictionary=None, debug=False):
     if os.path.exists(dir):
-        annotations = open(os.path.join(dir, "annotations."+mode+".csv"), "w")
+        annotations = open(os.path.join(dir, "annotations." + mode + ".csv"), "w")
         for root, _, files in os.walk(dir):
             if not root == dir:
-                print(root + " -> class_id: " + str(class_dictionary[os.path.basename(root).replace("-open","")]))
+                print(root + " -> class_id: " + str(class_dictionary[os.path.basename(root).replace("-open", "")]))
                 t0 = time.clock()
             for file in files:
                 if separator in file:
-                    path = os.path.join(root, file.replace(separator, ""))
+                    path = os.path.join(root, file.replace(separator, "frame").replace("png", "jpg"))
                     if os.path.isfile(path):
                         image_mask = cv2.imread(os.path.join(root, file), cv2.IMREAD_COLOR)
                         mask = cv2.inRange(image_mask, background_color1, background_color2)
                         if debug:
-                            cv2.imshow("mask",mask)
-                            cv2.waitKey(0)
+                            cv2.imshow("mask", mask)
+                            cv2.waitKey(1)
                         indices = np.argwhere(mask[:, :] < 255)
                         if len(indices) > 0:
                             min = np.amin(indices, axis=0)
@@ -194,11 +201,13 @@ def parse_annotations_from_alpha_mask(dir, separator, background_color1, backgro
                             label = os.path.basename(root)
                             if mode == "retinanet":
                                 annotations.write("\"" + path + "\",")
-                                annotations.write(str(min[0])+","+str(min[1])+","+str(max[0])+","+str(max[1])+",")
-                                annotations.write(label.replace("-open","")+"\n")
+                                annotations.write(
+                                    str(min[0]) + "," + str(min[1]) + "," + str(max[0]) + "," + str(max[1]) + ",")
+                                annotations.write(label.replace("-open", "") + "\n")
                             elif mode == "ssd":
-                                annotations.write(label+"/"+file.replace(separator, "")+",")
-                                annotations.write(str(min[0]) + "," + str(min[1]) + "," + str(max[0]) + "," + str(max[1]) + ",")
+                                annotations.write(label + "/" + file.replace(separator, "") + ",")
+                                annotations.write(
+                                    str(min[0]) + "," + str(min[1]) + "," + str(max[0]) + "," + str(max[1]) + ",")
                                 annotations.write(str(class_dictionary[label.replace("-open", "")]) + "\n")
                         elif mode == "retinanet":
                             annotations.write("\"" + path + "\",,,,,\n")
@@ -206,7 +215,77 @@ def parse_annotations_from_alpha_mask(dir, separator, background_color1, backgro
                 t1 = time.clock()
                 print("Time elapsed: ", t1 - t0)  # CPU seconds elapsed (floating point)
         annotations.close()
+    else:
+        raise ValueError("input dir not found!")
 
+
+def parse_annotations_from_alpha_mask_multiclass(dir, separator, class_colors, nb_classes,
+                                                 mode="retinanet", class_dictionary=None, debug=False):
+    def clamp(n, smallest, largest):
+        if n < smallest: return smallest
+        if n > largest:
+            return largest
+        else:
+            return n
+
+    if os.path.exists(dir):
+        annotations = open(os.path.join(dir, "annotations." + mode + ".csv"), "w")
+        for file in os.listdir(dir):
+            if file.endswith(".png"):
+                if not os.path.isfile(os.path.join(dir, file)): continue
+                if separator in file:
+                    path = os.path.join(dir, file.replace(separator, "frame").replace("png", "jpg"))
+                    if os.path.isfile(path):
+                        image_mask = cv2.imread(os.path.join(dir, file), cv2.IMREAD_COLOR)
+                        shape = image_mask.shape
+                        w, h = shape[1], shape[0]
+                        gt_found = False
+                        for class_id, color in enumerate(class_colors):
+                            m, n = 0.9, 1.1
+                            mask = cv2.inRange(image_mask, m * np.array(color), n * np.array(color))
+                            # blur image
+                            mask = cv2.blur(mask, (2, 2))
+                            # apply a threshold
+                            mask = cv2.threshold(mask, 190, 250, cv2.THRESH_BINARY)
+                            mask = mask[1]
+                            indices = np.argwhere(mask[:, :] > 0)
+                            min, max = None, None
+                            if len(indices) > 200:
+                                gt_found = True
+                                min = np.amin(indices, axis=0)
+                                max = np.max(indices, axis=0)
+                                min = (clamp(min[1] - 1, 0, w), clamp(min[0] - 1, 0, h))
+                                max = (clamp(max[1] + 1, 0, w), clamp(max[0] + 1, 0, h))
+                                label = list(class_dictionary.keys())[class_id]
+                                if mode == "retinanet":
+                                    annotations.write("\"" + path + "\",")
+                                    annotations.write(
+                                        str(min[0]) + "," + str(min[1]) + "," + str(max[0]) + "," + str(max[1]) + ",")
+                                    annotations.write(label.replace("-open", "") + "\n")
+                                elif mode == "ssd":
+                                    annotations.write(os.path.basename(path) + ",")
+                                    annotations.write(
+                                        str(min[0]) + "," + str(min[1]) + "," + str(max[0]) + "," + str(max[1]) + ",")
+                                    annotations.write(str(1 + class_dictionary[label.replace("-open", "")]) + "\n")
+                            if debug:
+                                original = cv2.imread(path, cv2.IMREAD_COLOR)
+                                if min:
+                                    cv2.rectangle(original, min, max, (0, 255, 0))
+                                cv2.imshow("original", original)
+                                cv2.moveWindow("original", 0, 0)
+                                cv2.imshow("mask", mask)
+                                cv2.imshow("image_mask", image_mask)
+                                cv2.moveWindow("mask", 500, 0)
+                                cv2.moveWindow("image_mask", 1000, 0)
+
+                                cv2.waitKey(0)
+                        if (not gt_found) and mode == "retinanet":
+                            annotations.write("\"" + path + "\",,,,,\n")
+                        elif (not gt_found) and mode == "ssd":
+                            annotations.write(os.path.basename(path) + ",0,0,0,0," + str(0) + "\n")
+        annotations.close()
+    else:
+        raise ValueError("input dir not found!")
 
 
 def patches(input_dir, output_dir):
@@ -319,11 +398,50 @@ def patches(input_dir, output_dir):
                     image = clone.copy()
 
 
+def shuffle_csv_annotations(file):
+    input_file = open(file, "r")
+    output_file = open(file.replace(".csv", ".shuffeled.csv"), "w")
+    lines = []
+    while True:
+        line = input_file.readline()
+        if line.strip() == "": break
+        lines.append(line)
+    import random
+    random.shuffle(lines)
+    for line in lines:
+        output_file.write(line)
+
+
+def repair_annotations(file):
+    input = open(file, "r")
+    output = open(file.replace(".csv",".reparied.csv"), "w")
+    csv_reader = csv.reader(input, delimiter=',')
+    result = {}
+    for line, row in enumerate(csv_reader):
+        path, x1, y1, x2, y2, class_id = row[:6]
+        img_file = os.path.basename(path)
+        if img_file not in result:
+            result[img_file] = [(path, x1, y1, x2, y2, class_id)]
+        else:
+            result[img_file].append((result[img_file][0][0], x1, y1, x2, y2, class_id))
+    input.close()
+    for i, element in enumerate(result):
+        for annot in result[element]:
+            output.write("{path},{x1},{y1},{x2},{y2},{class_name}\n".format(path=annot[0],
+                                                                            x1=annot[1],
+                                                                            y1=annot[2],
+                                                                            x2=annot[3],
+                                                                            y2=annot[4],
+                                                                            class_name=annot[5]))
+    output.close()
+
+
 if __name__ == '__main__':
-    #input_dir = "D:/Documents/Villeroy & Boch - Subway 2.0"
-    #annotations = "D:/Documents/Villeroy & Boch - Subway 2.0/annotations.csv"
-    #labeling(input_dir, annotations)
-    debug_annotations("D:/Documents/3dsMax/renderoutput/3dsmax3/annotations.retinanet.csv")
+    # input_dir = "D:/Documents/Villeroy & Boch - Subway 2.0"
+    # annotations = "D:/Documents/Villeroy & Boch - Subway 2.0/annotations.csv"
+    # labeling(input_dir, annotations)
+    # debug_annotations("D:/Documents/3dsMax/renderoutput/3dsmax3/annotations.retinanet.csv")
+
     """
     classes = {
         "540000": 0,
@@ -331,14 +449,29 @@ if __name__ == '__main__':
         "711355": 2,
         "7175A0": 3,
         "7175D0": 4,
-        "751301": 5
+        "751301": 5,
+        "751301-open": 6,
+        "5614R0-open": 7
     }
-    parse_annotations_from_alpha_mask(dir="D:/Documents/3dsMax/renderoutput/3dsmax",
-                                      separator="_Alpha",
-                                      background_color1=(0, 0, 0),
-                                      background_color2=(10, 10, 10),
-                                      mode="ssd",
-                                      class_dictionary=classes,
-                                      debug=False)
-                                      """
-    #debug_annotations("D:/Documents/3dsMax/renderoutput/3dsmax3/annotations.ssd.csv", dir="D:/Documents/3dsMax/renderoutput/3dsmax3")
+    colors = [
+        (255,254,0),
+        (185, 0, 255),
+        (0,255,255),
+        (0, 255, 185),
+        (254, 0, 255),
+        (0,0,255),
+        (0,255,0),
+        (255,186,0)
+    ]
+    parse_annotations_from_alpha_mask_multiclass(dir="D:/Documents/3dsMax/renderoutput/domain_randomization/test",
+                                                 separator="objID",
+                                                 mode="ssd",
+                                                 class_dictionary=classes,
+                                                 debug=False,
+                                                 class_colors=colors,
+                                                 nb_classes=6)
+    """
+
+    #shuffle_csv_annotations(file="D:/Documents/3dsMax/renderoutput/annotations.ssd.csv")
+    #repair_annotations(file="D:/Documents/Villeroy & Boch - Subway 2.0/annotations.csv")
+    #debug_annotations("D:/Documents/Villeroy & Boch - Subway 2.0/annotations.repaired.csv", max_width=800)
