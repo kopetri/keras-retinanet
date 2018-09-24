@@ -19,7 +19,7 @@ from ..utils.eval import evaluate
 
 
 class Evaluate(keras.callbacks.Callback):
-    def __init__(self, generator, iou_threshold=0.5, score_threshold=0.05, max_detections=100, save_path=None, tensorboard=None, verbose=1):
+    def __init__(self, generator, name, iou_threshold=0.5, score_threshold=0.05, max_detections=100, save_path=None, tensorboard=None, verbose=1):
         """ Evaluate a given dataset using a given model at the end of every epoch during training.
 
         # Arguments
@@ -38,6 +38,7 @@ class Evaluate(keras.callbacks.Callback):
         self.save_path       = save_path
         self.tensorboard     = tensorboard
         self.verbose         = verbose
+        self.name            = str(name)
 
         super(Evaluate, self).__init__()
 
@@ -61,12 +62,12 @@ class Evaluate(keras.callbacks.Callback):
             summary = tf.Summary()
             summary_value = summary.value.add()
             summary_value.simple_value = self.mean_ap
-            summary_value.tag = "mAP"
+            summary_value.tag = self.name+"mAP"
             self.tensorboard.writer.add_summary(summary, epoch)
 
-        logs['mAP'] = self.mean_ap
+        logs[self.name+'mAP'] = self.mean_ap
 
         if self.verbose == 1:
             for label, average_precision in average_precisions.items():
                 print(self.generator.label_to_name(label), '{:.4f}'.format(average_precision))
-            print('mAP: {:.4f}'.format(self.mean_ap))
+            print(self.name+'mAP: {:.4f}'.format(self.mean_ap))

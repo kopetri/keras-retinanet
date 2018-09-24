@@ -24,11 +24,16 @@ def debug_annotations(annotations, dir="", max_width=None):
         for i, key in enumerate(image_data):
             image = cv2.imread(os.path.join(dir, key.replace("\"", "")), cv2.IMREAD_COLOR)
             print(len(image_data[key]))
+            waitKey = 1
             for box in image_data[key]:
                 x1, y1, x2, y2, label = box[0], box[1], box[2], box[3], box[4]
                 x1, y1, x2, y2 = int(x1), int(y1), int(x2), int(y2)
-                cv2.rectangle(image, (x1, y1), (x2, y2), (0, 255, 0), 5)
-                cv2.putText(image, label, (x1, y1 + 30), cv2.FONT_HERSHEY_SIMPLEX, 5, (255, 255, 255), 10, cv2.LINE_AA)
+                if (x1,y1,x2,y2) == (51,345,53,345):
+                    waitKey = 0
+                    cv2.rectangle(image, (x1, y1), (x2, y2), (0, 0, 255), 1)
+                else:
+                    cv2.rectangle(image, (x1, y1), (x2, y2), (0, 255, 0), 1)
+                cv2.putText(image, label, (x1, y1 + 30), cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 255, 255), 1, cv2.LINE_AA)
             if max_width:
                 width = max_width
                 scale = float(width) / float(image.shape[1])
@@ -37,8 +42,9 @@ def debug_annotations(annotations, dir="", max_width=None):
                 width = image.shape[1]
                 height = image.shape[0]
             image = cv2.resize(image, (width, height))
-            cv2.imshow("annotation", image)
-            cv2.waitKey(0)
+            if waitKey == 0:
+                cv2.imshow("annotation", image)
+                cv2.waitKey(waitKey)
 
 
 def mark_pixel(event, x, y, flags, param):
@@ -474,4 +480,4 @@ if __name__ == '__main__':
 
     #shuffle_csv_annotations(file="D:/Documents/3dsMax/renderoutput/annotations.ssd.csv")
     #repair_annotations(file="D:/Documents/Villeroy & Boch - Subway 2.0/annotations.csv")
-    #debug_annotations("D:/Documents/Villeroy & Boch - Subway 2.0/annotations.repaired.csv", max_width=800)
+    debug_annotations("D:/Documents/3dsMax/renderoutput/annotations.ssd.shuffeled.csv", max_width=800, dir="D:/Documents/3dsMax/renderoutput")

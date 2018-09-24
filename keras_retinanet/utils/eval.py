@@ -144,6 +144,7 @@ def evaluate(
     iou_threshold=0.5,
     score_threshold=0.05,
     max_detections=100,
+    get_detections=None,
     save_path=None
 ):
     """ Evaluate a given dataset using a given model.
@@ -159,7 +160,10 @@ def evaluate(
         A dict mapping class names to mAP scores.
     """
     # gather all detections and annotations
-    all_detections     = _get_detections(generator, model, score_threshold=score_threshold, max_detections=max_detections, save_path=save_path)
+    if get_detections is not None:
+        all_detections = get_detections(generator, model, score_threshold=score_threshold, max_detections=max_detections, save_path=save_path)
+    else:
+        all_detections     = _get_detections(generator, model, score_threshold=score_threshold, max_detections=max_detections, save_path=save_path)
     all_annotations    = _get_annotations(generator)
     average_precisions = {}
 
