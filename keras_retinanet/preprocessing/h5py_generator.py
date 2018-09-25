@@ -33,13 +33,14 @@ class H5PyGenerator(Generator):
     def load_annotations(self, image_index):
         annots = self.labels[image_index]
         boxes = np.zeros((len(annots), 5))
-
+        if annots[0][0] == 0:
+            return np.zeros((0, 5))
         for idx, annot in enumerate(annots):
             boxes[idx, 0] = float(annot[1])
             boxes[idx, 1] = float(annot[2])
             boxes[idx, 2] = float(annot[3])
             boxes[idx, 3] = float(annot[4])
-            boxes[idx, 4] = annot[0]
+            boxes[idx, 4] = annot[0] - 1
 
         return boxes
 
