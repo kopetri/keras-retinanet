@@ -62,12 +62,12 @@ class Evaluate(keras.callbacks.Callback):
             summary = tf.Summary()
             summary_value = summary.value.add()
             summary_value.simple_value = self.mean_ap
-            summary_value.tag = self.name+"mAP"
+            summary_value.tag = self.name+".mAP"
             self.tensorboard.writer.add_summary(summary, epoch)
 
-        logs[self.name+'mAP'] = self.mean_ap
+        logs[self.name+'.mAP'] = self.mean_ap
 
         if self.verbose == 1:
             for label, average_precision in average_precisions.items():
                 print(self.generator.label_to_name(label), '{:.4f}'.format(average_precision))
-            print(self.name+'mAP: {:.4f}'.format(self.mean_ap))
+            print(self.name+'.mAP: {:.4f}'.format(self.mean_ap))
