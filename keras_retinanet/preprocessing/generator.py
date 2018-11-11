@@ -28,6 +28,7 @@ from ..utils.image import (
     apply_transform,
     preprocess_image,
     resize_image,
+    random_blur
 )
 from ..utils.transform import transform_aabb
 
@@ -116,6 +117,7 @@ class Generator(object):
         if self.transform_generator:
             transform = adjust_transform_for_image(next(self.transform_generator), image, self.transform_parameters.relative_translation)
             image     = apply_transform(transform, image, self.transform_parameters)
+            image     = random_blur(image)
 
             # Transform the bounding boxes in the annotations.
             annotations = annotations.copy()
